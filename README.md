@@ -20,4 +20,4 @@
 ## Commands
 1. Download file fastq: `fasterq-dump ERR5084065 --split-files --skip-technical`
 2. Adapter removal and read quality trimming: `trim_galore --paired fileR1.fastq fileR2.fastq`
-3. Joins two paired-end reads on the overlapping ends: `fastq-join ERR5084066_1_val_1.fq ERR5084066_2_val_2.fq -o ERR66-join.fq`
+3. Joins two paired-end reads on the overlapping ends: `fastq-join ERR5084066_1_val_1.fq ERR5084066_2_val_2.fq -o ERR66-join.fq` (virussekker lo fa, genome detective no)
