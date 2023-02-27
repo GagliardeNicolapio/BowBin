@@ -24,3 +24,5 @@
 
 - fastq to fasta: `seqtk seq -a ERR5084066_1_val_1.fq > fastaTrimmed/ERR66_1_val_1.fasta`
 - deinterleave reads:  `paste - - - - - - - - < reads-int.fq | tee >(cut -f 1-4 | tr "\t" "\n" > reads-1.fq) | cut -f 5-8 | tr "\t" "\n" > reads-2.fq`
+
+- polyA: trim_galore --polyA --paired reads-1.fq reads-2.fq
