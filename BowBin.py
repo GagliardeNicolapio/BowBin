@@ -6,7 +6,16 @@ import sys, argparse, subprocess, os
 from pathlib import Path
 
 
-
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
 
 def print_header():
     print( "  ____                ____  _       ")
@@ -19,7 +28,7 @@ print_header()
 
 def debug(msg:str):
   if 'DEBUG_FLAG' in globals():
-    print("DEBUG: "+msg)
+    print(bcolors.WARNING+"DEBUG: "+msg+bcolors.ENDC)
 
 def check_return(result: subprocess.CompletedProcess, error_msg:str):
   print(result)
@@ -43,14 +52,43 @@ def msg_usage(name=None):
   return '''BowBin.py [options]* (-in_reads FASTQ | -dein_reads FASTQ1 FASTQ2 | -sraid SRAID)'''
 
 def trim_galore(file1:str, file2:str):
+  debug("file1: "+file1)
+  debug("file2: "+file2)
   adapter_quality_trim_command = "trim_galore --paired "+file1+" "+file2+" -o "+OUTPUT_FOLDER
-  polyA_command = "trim_galore --polyA --paired "+OUTPUT_FOLDER+file1+" "+OUTPUT_FOLDER+file2+" -o "+OUTPUT_FOLDER
+ 
   debug(adapter_quality_trim_command)
-  debug(polyA_command)
   check_return_trim_galore(subprocess.run(adapter_quality_trim_command, capture_output=True, shell=True),"adapter removal or quality trimming error")
-  check_return_trim_galore(subprocess.run(polyA_command, capture_output=True, shell=True),"polyA error")
 
 
+def trim_galore_polya(file1:str, file2:str):
+    debug("file1: "+file1)
+    debug("file2: "+file2)
+    #controllare virusseeker e genome detective dove fanno la polyA
+    #provare senza polyA
+    #polya e' sperimentale, il flag -o non funziona, quindi dopo polya faccio mv dei file
+    polyA_command = "trim_galore --polyA --paired "+file1.replace(".fq","_val_1.fq")+" "+file2.replace(".fq","_val_2.fq")
+    debug(polyA_command)
+    check_return_trim_galore(subprocess.run(polyA_command, capture_output=True, shell=True),"polyA error")
+
+    debug(file1.replace(".fq","_val_1_val_1.fq"))
+    
+    move_files = "mv ./"+file1.replace(".fq","_val_1_val_1.fq").replace(OUTPUT_FOLDER,"")+" ./"+file2.replace(".fq","_val_2_val_2.fq").replace(OUTPUT_FOLDER,"")+" "+OUTPUT_FOLDER
+    debug(move_files)
+    check_return(subprocess.run(move_files, capture_output=True, shell=True),"mv error")
+
+def fastq_join(file1:str, file2:str):
+  debug("file1: "+file1)
+  debug("file2: "+file2)
+
+  fastq_join_command = "fastq-join "+file1.replace(".fq","_val_1_val_1.fq")+" "+file2.replace(".fq","_val_2_val_2.fq")+" -o "+OUTPUT_FOLDER+"result-fq"
+  debug(fastq_join_command)
+  check_return(subprocess.run(fastq_join_command, capture_output=True, shell=True), "fastq-join error")
+
+
+def cd_hit():#problema: ci mette un eternità di tempo
+  cd_hit_command = "cd-hit -i "+OUTPUT_FOLDER+"result-fqjoin -o "+OUTPUT_FOLDER
+  debug("cd_hit_command:"+cd_hit_command)
+  check_return(subprocess.run(cd_hit_command, capture_output=True, shell=True), "cd-hit error")
 
 
 # Gather our code in a main() function
@@ -64,6 +102,16 @@ def main(args):
     #adapter removale, quality trimming, polyA
     debug("start trim galore"+args.dein_reads[0]+"  "+args.dein_reads[1])
     trim_galore(args.dein_reads[0],args.dein_reads[1])
+
+
+    #polyA
+    trim_galore_polya(args.dein_reads[0],args.dein_reads[1])
+    
+    #join overlapping reads
+    fastq_join(args.dein_reads[0],args.dein_reads[1])
+
+    #cd-hit clustering reads
+    cd_hit()
 
   elif args.in_reads is not None:
     check_file_exist(args.in_reads)
@@ -84,6 +132,15 @@ def main(args):
     debug("start trim_galore "+OUTPUT_FOLDER+"reads-1.fq  "+OUTPUT_FOLDER+"reads-2.fq")
     trim_galore(OUTPUT_FOLDER+"reads-1.fq",OUTPUT_FOLDER+"reads-2.fq")
   
+
+    #polya
+    trim_galore_polya(OUTPUT_FOLDER+"reads-1.fq",OUTPUT_FOLDER+"reads-2.fq")
+
+    #join overlapping reads
+    fastq_join(OUTPUT_FOLDER+"reads-1.fq",OUTPUT_FOLDER+"reads-2.fq")
+
+    #cd-hit clustering reads
+    cd_hit()
 
   else:
     print(3)
