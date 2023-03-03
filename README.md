@@ -17,6 +17,9 @@
 
 `conda install -c bioconda fastq-join`
 
+`conda install -c bioconda centrifuge`
+
+`conda install -c bioconda blast` (for dustmask)
 ## Commands
 1. Download file fastq: `fasterq-dump ERR5084065 --split-files --skip-technical`
 2. Adapter removal and read quality trimming: `trim_galore --paired fileR1.fastq fileR2.fastq`
